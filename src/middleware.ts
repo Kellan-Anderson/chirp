@@ -1,7 +1,10 @@
-import { authMiddleware } from "@clerk/nextjs";
+import { authMiddleware, withClerkMiddleware } from "@clerk/nextjs";
+import { NextResponse } from "next/server";
 
-export default authMiddleware();
+export default withClerkMiddleware(() => {
+  return NextResponse.next()
+});
 
 export const config = {
-  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
+  matcher: "/((?!_next/image|_next/static|favicon.ico).*)",
 };

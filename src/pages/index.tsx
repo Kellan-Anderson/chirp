@@ -1,4 +1,4 @@
-import { SignInButton, useUser } from "@clerk/nextjs";
+import { SignInButton, SignOutButton, useUser } from "@clerk/nextjs";
 import { type NextPage } from "next";
 import { api } from "~/utils/api";
 
@@ -32,7 +32,7 @@ const CreatePostWizard = () => {
   });
 
   if(!user) return null;
-  console.log(user.id);
+
   return (
     <div className="flex gap-3 w-full">
       <Image 
@@ -101,12 +101,18 @@ const Home: NextPage = () => {
   return (
     <PageLayout>
       <div className="flex border-b border-slate-400 p-4">
-        {!isSignedIn && 
+        {!isSignedIn ? ( 
           <div className="flex justify-center">
             <SignInButton />
           </div>
-        }
-        {isSignedIn && <CreatePostWizard />}
+        ) : (
+          <div className="flex justify-center w-full">
+            <CreatePostWizard />
+            <div className="flex justify-center items-center pl-2">
+              <SignOutButton />
+            </div>
+          </div>
+        )}
       </div>
       <Feed />
     </PageLayout>

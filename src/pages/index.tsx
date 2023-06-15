@@ -9,6 +9,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import Image from "next/image";
 import Loading from "~/components/Loading";
 import { useState } from "react";
+import { toast } from "react-hot-toast";
 
 dayjs.extend(relativeTime);
 
@@ -23,6 +24,10 @@ const CreatePostWizard = () => {
     onSuccess: () => {
       setInput("");
       void ctx.posts.getAll.invalidate();
+    },
+    onError: (e) => {
+      const errorMessage = e.data?.zodError?.fieldErrors.content;
+      if (errorMessage && errorMessage[0]) toast.error(errorMessage[0]);
     }
   });
 
@@ -43,14 +48,27 @@ const CreatePostWizard = () => {
         value={input}
         type="text"
         onChange={(event) => setInput(event.target.value)}
-      />
-      <button
-        onClick={() => mutate({ content: input })}
-        className=""
         disabled={isPosting}
-      >
-        Post
-      </button>
+        onKeyDown={(e) => {
+          if(e.key === "Enter") {
+            e.preventDefault();
+            if(input !== "") {
+              mutate({ content: input });
+            }
+          }
+        }}
+      />
+      <div className="flex justify-center items-center">
+      { input !== "" && !isPosting && (
+        <button
+          onClick={() => mutate({ content: input })}
+          className=""
+          >
+          Post
+        </button>
+      )} 
+      {isPosting && <Loading />}
+      </div>
     </div>
   );
 }

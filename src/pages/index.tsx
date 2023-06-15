@@ -1,4 +1,4 @@
-import { SignInButton, useUser } from "@clerk/nextjs";
+import { SignInButton, useSession, useUser } from "@clerk/nextjs";
 import { type NextPage } from "next";
 import Head from "next/head";
 import { api } from "~/utils/api";
@@ -7,11 +7,24 @@ import type { RouterOutputs } from "~/utils/api";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import Image from "next/image";
+import Loading from "~/components/Loading";
+import { useState } from "react";
 
 dayjs.extend(relativeTime);
 
 const CreatePostWizard = () => {
   const { user } = useUser();
+
+  const [input, setInput] = useState("");
+
+  const ctx = api.useContext();
+
+  const { mutate, isLoading: isPosting } = api.posts.create.useMutation({
+    onSuccess: () => {
+      setInput("");
+      void ctx.posts.getAll.invalidate();
+    }
+  });
 
   if(!user) return null;
   console.log(user.id);
@@ -24,7 +37,20 @@ const CreatePostWizard = () => {
         width={56}
         height={56}
       />
-      <input placeholder="type some emoji's!" className="bg-transparent grow outline-none"/>
+      <input
+        placeholder="Type some emoji's!"
+        className="bg-transparent grow outline-none"
+        value={input}
+        type="text"
+        onChange={(event) => setInput(event.target.value)}
+      />
+      <button
+        onClick={() => mutate({ content: input })}
+        className=""
+        disabled={isPosting}
+      >
+        Post
+      </button>
     </div>
   );
 }
@@ -47,20 +73,36 @@ const PostView = (props: PostWithUser) => {
           <span>{`@${author.username}`}</span>
           <span className="font-thin">{` • ${dayjs(post.createdAt).fromNow()}`}</span>
         </div>
-        <span>{post.content}</span>
+        <span className="text-xl">{post.content}</span>
       </div>
     </div>
   );
 }
 
+const Feed = () => {
+
+  const { data, isLoading: postLoading } = api.posts.getAll.useQuery();
+
+  if(postLoading) return <Loading />
+
+  if(!data) return <div>Something went wrong</div>
+  
+  return (
+    <div className="flex flex-col">
+      {data.map((fullPost) => (
+        <PostView {...fullPost} key={fullPost.post.id} />
+      ))}
+    </div>
+  );
+
+}
+
 const Home: NextPage = () => {
+  const { isLoaded: userLoaded, isSignedIn } = useUser();
 
-  const user = useUser();
+  api.posts.getAll.useQuery();
 
-  const { data, isLoading } = api.posts.getAll.useQuery();
-
-  if(isLoading) return <div>...Loading</div>
-  if(!data) return <div>No data</div>
+  if(!userLoaded) return <div />
   
   return (
     <>
@@ -72,18 +114,14 @@ const Home: NextPage = () => {
       <main className="flex justify-center h-screen">
         <div className="w-full md:max-w-2xl border-x border-slate-400 h-full">
           <div className="border-b border-slate-200 p-4">
-            {!user.isSignedIn && 
+            {!isSignedIn && 
               <div className="flex justify-center">
                 <SignInButton />
               </div>
             }
-            {user.isSignedIn && <CreatePostWizard />}
+            {isSignedIn && <CreatePostWizard />}
           </div>
-          <div className="flex flex-col">
-            {[...data, ...data]?.map((fullPost) => (
-              <PostView {...fullPost} key={fullPost.post.id} />
-            ))}
-          </div>
+          <Feed />
         </div>
       </main>
     </>
